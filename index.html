@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<title>Alberta Election Results Hexmap</title>
+<head>
+	<link rel="stylesheet" href="stylesheets/style.css" />
+	<link href="data.json" />
+	
+		<!--<script src="lib/d3.js"></script>-->
+		<script src="lib/topojson.js"></script>
+		<script src="lib/queue.js"></script>
+		
+</head>
+
+<body>
+
+<h1>Alberta Election Results Hexmap</h1>
+
+	<div class="info" id="info">
+		<h4 id="placeholderInfo">
+			Alberta Election Results Hexmap<br/><div class="subinfo">Hover over a riding for more detail</div><br/></h4>
+	</div>
+
+
+<div id="metrics">
+    <div id="eddata">
+        <!-- <h3>Data</h3> -->
+        <ul>
+        <li data-metric="region" class=" region">Regions</li>		
+        <li data-metric="election_2012" class=" election_2012">2012 Results</li>
+        <li data-metric="current_party" class=" current_party">Before Election</li>
+        <li data-metric="result_2015" class="selected result_2015">2015 Results</li>
+        </ul>
+    </div>  
+   <!--  <div class="clr"></div> -->
+</div><!-- @end #metrics --> 	
+	
+		<div id="hexmap" class="hexmap"></div>
+		
+		<div id="realmap" class="realmap"></div>
+
+
+<div id="tooltip" class="tooltip">
+    <h3 class="name">Test</h3>
+<!--    <div data-metric="HC01_EST_VC04" class="line">
+        <div class="HC01_EST_VC04 symbol"></div> Drive Alone
+        <div class="HC01_EST_VC04_val moe"></div>
+        <div class="HC01_EST_VC04_val val"></div>
+    </div> -->
+<!--...
+    <div data-metric="HC01_EST_VC14" class="line">
+        <div class="HC01_EST_VC14 symbol"></div> Work from Home
+        <div class="HC01_EST_VC14_val moe"></div>
+        <div class="HC01_EST_VC14_val val"></div>
+    </div> -->
+</div>	
+
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<script src="http://d3js.org/d3.hexbin.v0.min.js?5c6e4f0"></script>
+<script src="http://code.jquery.com/jquery-1.10.2.js"></script>
+<script src="abvotedata.js"></script>
+<!-- <script src="resultdata.js"></script> -->
+
+
+<script>
+
+//map data
+var mapdata = [
+    '..','..','..','..','..','..','..','..','..','..',
+       '..','01','74','50','02','59','58','..','..','..',
+    '..','..','62','61','87','79','37','48','65','..',
+       '..','..','80','29','30','32','28','52','..','..',
+    '..','..','39','34','31','36','78','60','..','..',
+       '..','..','44','42','45','35','40','84','..','..',
+    '..','..','38','46','43','41','33','51','..','..',
+       '..','85','81','56','67','66','86','..','..','..',
+    '..','..','77','75','76','64','57','..','..','..',
+       '..','..','49','47','73','54','83','..','..','..',
+    '..','..','..','22','23','19','20','63','..','..',
+       '..','..','..','15','11','17','06','69','..','..',
+    '..','..','..','..','04','26','21','08','..','..',
+       '..','..','..','27','07','05','14','68','..','..',
+    '..','..','..','..','09','03','12','72','..','..',
+       '..','..','..','..','13','10','16','55','..','..',
+    '..','..','..','..','..','18','24','25','53','..',
+       '..','..','..','..','..','71','53','70','..','..',
+    '..','..','..','..','..','..','..','..','..','..',
+       '..','..','..','..','..','..','..','..','..','..',
+    
+];
+
+//var resultdata;
+//d3.json("data.json", function(error, json) {
+//				  if (error) return console.warn(error);
+//				 resultdata = json
+//				 console.log(resultdata[0].pollsreport);
+//				});
+
+
+
+d3.selectAll("#metrics li")
+    .on("click", function() {
+        var item = d3.select(this);
+		
+		if (item.classed("election_2012")) {
+
+			$("#metrics li").removeClass("selected");
+
+			item.attr("class","election_2012 selected");
+		
+			svg.selectAll(".hexagon")
+				  .style("fill", function (d, i) {
+					if (i<mapdata.length) {
+					electorate = electorates.results[mapdata[i]];
+					return partyColors[electorate.election_2012];
+					}
+					return 'none'; //'#fff';
+				   })
+
+			
+			svg.selectAll(".hex-label")
+				.html(function(d, i) {
+				        if (i<mapdata.length) {
+				          electorate = electorates.results[mapdata[i]];
+							increment = i;
+				          if (electorate.party == '') {return '';};
+	
+				          //return //electorate.map_id + '<br/>' +
+				           return  '<small>' + electorate.election_2012 + '<small>';
+				        }
+				      })			   
+				   
+	   
+		}
+
+		if (item.classed("region")) {
+		
+			$("#metrics li").removeClass("selected");
+
+			item.attr("class", "region selected");
+			
+			svg.selectAll(".hexagon")
+				  .style("fill", function (d, i) {
+					if (i<mapdata.length) {
+					electorate = electorates.results[mapdata[i]];
+					return regionColors[electorate.region];
+					}
+					return 'none'; //'#fff';
+		   		  })
+
+		   		  
+			svg.selectAll(".hex-label")
+				.html(function(d, i) {
+				        if (i<mapdata.length) {
+				          electorate = electorates.results[mapdata[i]];
+					  increment = i;
+				          if (electorate.party == '') {return '';};
+	
+				          //return electorate.map_id + '<br/>' 
+				          return   '<small>' + electorate.reg + '<small>';
+				        }
+				      })		   		  
+		}
+		
+		if (item.classed("current_party")) {
+		
+			$("#metrics li").removeClass("selected");
+
+			item.attr("class", "current_party selected");
+			
+			svg.selectAll(".hexagon")
+				  .style("fill", function (d, i) {
+					if (i<mapdata.length) {
+					electorate = electorates.results[mapdata[i]];
+					return partyColors[electorate.current_party];
+					}
+					return 'none'; //'#fff';
+		   		  })
+
+		   		  
+			svg.selectAll(".hex-label")
+				.html(function(d, i) {
+				        if (i<mapdata.length) {
+				          electorate = electorates.results[mapdata[i]];
+					  increment = i;
+				          if (electorate.party == '') {return '';};
+	
+				          //return //electorate.map_id + '<br/>' +
+				           return  '<small>' + electorate.current_party + '<small>';
+				        }
+				      })		   
+		}
+
+		if (item.classed("result_2015")) {
+		
+			$("#metrics li").removeClass("selected");
+
+			item.attr("class", "result_2015 selected");
+			
+			svg.selectAll(".hexagon")
+				  .style("fill", function (d, i) {
+					if (i<mapdata.length) {
+					electorate = electorates.results[mapdata[i]];
+					return partyColors[electorate.result_2015];
+					}
+					return 'none'; //'#fff';
+		   		  })
+
+//				  .style("fill-opacity", function (d,i) {
+//					if (i>=mapdata.length) {return 1;};
+//					electorate = electorates.results[mapdata[i]];
+//					if (electorate.party == '') {return 0;}
+//					per = electorate.maj2015.replace('%', '');
+//					per = parseFloat(per);
+//					//return per/85; //testing
+//					if (per > 60) {return 1;}
+//					else if (per > 50) {return 0.8;}
+//					else if (per > 40) {return 0.7}
+//					else if (per > 30) {return 0.6}
+//					else {return 0.5};
+//				  })
+		   		  
+			svg.selectAll(".hex-label")
+				.html(function(d, i) {
+				        if (i<mapdata.length) {
+				          electorate = electorates.results[mapdata[i]];
+					  increment = i;
+				          if (electorate.party == '') {return '';};
+	
+				          //return //electorate.map_id + '<br/>' +
+				           return  '<small>' + electorate.result_2015 + '<small>';
+				        }
+				      })		   
+		}
+		
+    });
+
+
+var partyColors = {
+    '': 'rgba(250,250,250,.1)', //'none', //'#fff',
+    'PC': '#377eb8',
+    'WRP': '#4daf4a',
+    'NDP': '#ff7f00',
+    'LIB': '#e41a1c',
+    'AP': '#d7c500',
+	'PC/NDP': '#bdbdbd',
+    'Ind': '#bdbdbd'
+};
+
+var regionColors = {
+    '': '#fff',
+    'Calgary': '#969696', //'#bc1c38',
+    'Edmonton': '#636363', //'#2E80B6', 
+    'Rest of Alberta': '#252525', //'rgb(254,186,53)', 
+};
+
+//svg sizes and margins
+var margin = {
+    top: -10, //27,
+    right: 0,
+    bottom: 0,
+    left: 0
+}, 
+//width = 1200,
+//height = 2300;
+//width = 960,
+//height = 700;
+width = 500;
+height = 700;
+
+//width = $(window).width()/2 - margin.left - margin.right - 40;
+//height = $(window).height() - margin.top - margin.bottom; //- 20;
+
+//The number of columns and rows of the cartogram
+var MapColumns = 10, MapRows = 20;
+ 
+//The maximum radius the hexagons can have to still fit the screen
+var hexRadius = d3.min([width/((MapColumns + 0.5) * Math.sqrt(3)),
+   height/((MapRows + 1/3) * 1.5)]);
+
+//Calculate the center positions of each hexagon 
+//var points = [];
+//for (var r = 0; r < MapRows; r++) {
+//    for (var c = 0; c < MapColumns; c++) {
+//        points.push([hexRadius * c * 1.75, hexRadius * r * 1.5]);
+//    }//for c
+//}//for r
+
+var points = [];
+var truePoints = [];
+for (var i = 0; i < MapRows; i++) {
+    for (var j = 0; j < MapColumns; j++) {
+        points.push([hexRadius * j * 1.75, hexRadius * i * 1.5]);
+	truePoints.push([hexRadius * j * Math.sqrt(3), hexRadius * i * 1.5]);
+    }//for j
+}//for i
+
+//Create SVG element
+//var svg = d3.select("body").append("svg")
+var svg = d3.select("#hexmap").append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+    .append("g")
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+//Set the hexagon radius
+var hexbin = d3.hexbin()
+            .radius(hexRadius);
+
+var radius = d3.scale.sqrt()
+    .domain([1, electorates.max_turnout])
+    .range([1, hexRadius]);
+
+//Draw the hexagons
+var hex = svg.selectAll(".hexagon")
+      .data(hexbin(points))
+    .enter().append("path")
+      .attr("class", "hexagon")
+      .attr("d", function(d, i) {
+        /*if (i<mapdata.length) {
+          electorate = electorates.results[mapdata[i]];
+          if ("total_votes_cast" in electorate) { return hexbin.hexagon(radius(electorate.total_votes_cast)); }
+        }
+        return hexbin.hexagon(radius(2000));*/
+        return hexbin.hexagon(radius(35000));
+      })
+      .attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; })
+
+	  .style("stroke", "none")
+//      .style("stroke", function (d, i) {
+//        if (i<mapdata.length) {
+//          electorate = electorates.results[mapdata[i]];
+////          if (electorate.region != '') {
+////            return regionColors[electorate.region];          };
+//			if (electorate.election_2012 != '') {
+//			  return partyColors[electorate.election_2012];          };
+//       }
+//      return 'none';
+//       })
+	   
+      //.style("stroke-width", "1px")
+
+	  .style("stroke-width", function (d, i) {
+        if (i<mapdata.length) {
+          return "1px";
+        }
+        return 'none';
+       })
+
+      .style("stroke-opacity", "0.5")
+
+      .style("fill", function (d, i) {
+        if (i<mapdata.length) {
+          electorate = electorates.results[mapdata[i]];
+          return partyColors[electorate.result_2015];
+//          electorate = electorates.results[mapdata[i]];
+//          return regionColors[electorate.region];
+        }
+        return 'none'; //'#fff';
+       })
+	   
+      //.style("fill-opacity", function (d, i) {
+      //  if (i<mapdata.length) {
+      //    return '1';
+      //  }
+      //  return '0'; //'#fff';
+      // })
+       
+      .attr("edname", function (d, i) {
+        if (i<mapdata.length) {
+          electorate = electorates.results[mapdata[i]];
+          return electorate.edname;
+        }
+        return ''; //'#fff';
+       })
+       
+       .attr("ednum", function (d, i) {
+        if (i<mapdata.length) {
+          electorate = electorates.results[mapdata[i]];
+          return electorate.map_id;
+        }
+        return ''; //'#fff';
+       })       
+	   
+	   .attr("id", function (d, i) {
+        if (i<mapdata.length) {
+          electorate = electorates.results[mapdata[i]];
+          return "hex" + electorate.map_id;
+        }
+        return '';
+       })
+       
+      .attr("e2012", function (d, i) {
+        if (i<mapdata.length) {
+          electorate = electorates.results[mapdata[i]];
+          return electorate.election_2012;
+        }
+        return ''; //'#fff';
+       }) 
+       
+      .attr("incumb", function (d, i) {
+        if (i<mapdata.length) {
+          electorate = electorates.results[mapdata[i]];
+          return electorate.current_party;
+        }
+        return ''; //'#fff';
+       })  
+       
+      .attr("maj2012", function (d, i) {
+        if (i<mapdata.length) {
+          electorate = electorates.results[mapdata[i]];
+          return electorate.maj2012;
+        }
+        return ''; //'#fff';
+       }) 
+       
+      .attr("e2015", function (d, i) {
+        if (i<mapdata.length) {
+          electorate = electorates.results[mapdata[i]];
+          return electorate.result_2015;
+        }
+        return ''; //'#fff';
+       })
+	   
+      .attr("maj2015", function (d, i) {
+        if (i<mapdata.length) {
+          electorate = electorates.results[mapdata[i]];
+          return electorate.maj2015;
+        }
+        return ''; //'#fff';
+       })
+
+/*.on("mouseover", function(d) {
+                 d3.select(this);
+                 tooltip.transition().duration(100)
+                   .style("opacity", 1)
+                 if (d3.event.pageX > (width - 200)) {
+                     tooltip.style("left", (d3.event.pageX - 210) + "px");
+                 } else {
+                     tooltip.style("left", (d3.event.pageX + 20) + "px")
+                          .style("top", (d3.event.pageY -30) + "px");
+                 }
+                 if (d3.event.pageY > (height - 150)) {
+                     tooltip.style("top", (d3.event.pageY -140) + "px");
+                 } else {
+                     tooltip.style("top", (d3.event.pageY -30) + "px");
+                 }
+
+                 //tooltip.select(".name").text(commuteById.get(d.id)['name']);
+                 tooltip.select(".name").html($(this).attr('edname'));
+               })
+            .on("mouseout", function() {
+               d3.select(this);
+                tooltip.transition().duration(300)
+                  .style("opacity", 0);
+                })*/	   
+
+	.on("mouseover", mover)   //Mouseover Function
+	.on("mouseout", mout);    //Mouseout Function
+
+var tooltip = d3.select("#tooltip")
+ .attr("class", "tooltip")
+ .style("opacity", 0);
+
+///////////////////////////////////////////////////////////////////////////
+///////////////////////////// Mouseover functions /////////////////////////
+///////////////////////////////////////////////////////////////////////////
+
+//Function to call when you mouseover a node
+function mover(d) {
+  var el = d3.select(this)
+		.transition()
+		.duration(10)		  
+		.style("fill-opacity", 0.3)
+		;
+  var tt = d3.select(placeholderInfo)
+        //  .html('Electoral District: ' + $(this).attr('edname') + ' (' + $(this).attr('ednum') + ')<br/>'
+        //  	+ '2012 Winner: ' + $(this).attr('e2012') + '<br/>'
+        //  	+ 'Incumbent: ' + $(this).attr('incumb')) 
+          .html($(this).attr('edname') != "" ? $(this).attr('edname') + ' (' + $(this).attr('ednum') + ')<br/>'
+          	+ '<div class="subinfo">2012 Winner: ' + $(this).attr('e2012') + ' (' + $(this).attr('maj2012') + ')<br/>'
+          	+ '2015 Winner: ' + $(this).attr('e2015') + ' (' + $(this).attr('maj2015') + ')<br/>'
+          	//+ 'Incumbent: ' + $(this).attr('incumb') + '</div>'
+          	: 'Alberta Election Results Hexmap<br/><div class="subinfo">Hover over a riding for more detail</div><br/>')
+		;
+		
+			d3.select(this);
+				if($(this).attr('edname') != "" ) {
+					 tooltip.transition().duration(100)
+					   .style("opacity", 1)
+					 if (d3.event.pageX > (width - 200)) {
+						 tooltip.style("left", (d3.event.pageX - 210) + "px");
+					 } else {
+						 tooltip.style("left", (d3.event.pageX + 20) + "px")
+							  .style("top", (d3.event.pageY -30) + "px");
+					 }
+					 if (d3.event.pageY > (height - 150)) {
+						 tooltip.style("top", (d3.event.pageY -140) + "px");
+					 } else {
+						 tooltip.style("top", (d3.event.pageY -30) + "px");
+					 }
+
+					 //tooltip.select(".name").text(commuteById.get(d.id)['name']);
+					 tooltip.select(".name")
+						.html($(this).attr('edname') != "" ? $(this).attr('edname') + ' (' + $(this).attr('ednum') + ')<br/>'
+						//	+ '<div class="subinfo">2012 Winner: ' + $(this).attr('e2012') + ' (' + $(this).attr('maj2012') + ')<br/>'
+						//	+ '2015 Winner: ' + $(this).attr('e2015') + ' (' + $(this).attr('maj2015') + ')<br/>'
+						
+						+'<div class="subinfo">'  //copying from above for chart implementation
+							+ '<div class="chart"></div>'
+
+							: "")
+		//					per = electorate.maj2015.replace('%', '');
+		//					per = parseFloat(per);
+					 ;
+					 
+					 //var pollresult = [$(this).attr('maj2012').replace('%',''), $(this).attr('maj2015').replace('%','')];
+					 
+					 var pollresult = [{party:$(this).attr('e2015'),maj:$(this).attr('maj2015').replace('%',''),year:"2015",opacity:"1"},{party:$(this).attr('e2012'),maj:$(this).attr('maj2012').replace('%',''),year:"2012",opacity:"1"}];
+
+						var x = d3.scale.linear()
+							.domain([0, 100])
+							.range([0, 200]);
+							
+						var bars = d3.select(".chart")
+						  .selectAll("div")
+							.data(pollresult)
+						  .enter().append("div")
+							.style("width", function(d) { return x(d.maj) + "px"; })
+							.style("background-color", function (d) {return partyColors[d.party];})
+							.style("opacity", function (d) {return d.opacity})
+							.text(function(d) { return /*d.party + ' ' +*/ d.maj + '%'; })  ;						
+
+					 //d3.select(".chart")
+					//	.insert("p", "div").text("hello");
+					
+					d3.selectAll(".chart > div").each(function () {
+						var t = document.createElement('p');
+						this.parentNode.insertBefore(t, this);       
+					});
+					
+					d3.selectAll(".chart > p").data(pollresult).text(function(d) {return d.year + ': ' + d.party})       
+					;
+					
+					d3.select("#AB"+$(this).attr('ednum')) 	//select the current region from hexmap in the realmap
+						.style("fill", "#bdbdbd");			//change to highlight riding
+					
+				}
+};
+
+//    .html($(this).attr('edname') + '<br/>'
+//          + '2012 Winner: ' + $(this).attr('e2012') + '<br/>'
+//          + 'Incumbent: ' + $(this).attr('incumb')) 
+
+
+
+//Mouseout function
+function mout(d) { 
+	var el = d3.select(this)
+	   .transition()
+	   .duration(1000)
+	   .style("fill-opacity", 1)
+	   ;
+	 var ttips =                d3.select(this);
+                tooltip.transition().duration(300)
+                  .style("opacity", 0);
+				  
+	//d3.select("#AB"+$(this).attr('ednum')) 	//select the current region in the realmap
+	//	.style("fill", "blue");			//change to highlight riding
+	if($(this).attr('edname') != "" ) {
+		var ridings = d3.select("#AB"+$(this).attr('ednum')); //select the current region
+		var fillcolor = ridings.select("desc").text(); //access original color from desc
+		 ridings.style("fill", fillcolor);
+	}			  
+  //var tt = d3.select(placeholderInfo)
+  //        .html('2012 Alberta Election Results Hexmap<br/><div class="subinfo">Hover over a riding for more detail</div><br/>')
+//		  ;
+  //var ot = d3.select(info)
+  	//.text('Hover over a riding for more detail');
+};
+
+
+/////Labelling
+	  /*
+//a second layer of hexagons for labels
+var labels = svg.selectAll(".labels")
+    .data(hexbin(points))
+  .enter()
+    .append("foreignObject");
+
+//label box scale factor
+var sf = 1.75;
+
+var labelAttributes = labels
+    .attr('width', hexRadius*sf)
+    .attr('height', hexRadius*sf)
+    .attr("x", function (d) { return d.x - hexRadius*sf/2; })
+    .attr("y", function (d) { return d.y - hexRadius*sf/2; })
+    .append("xhtml:body")
+    .html(function(d, i) {
+	
+        if (i<mapdata.length) {
+          electorate = electorates.results[mapdata[i]];
+		  increment = i;
+          if (electorate.party == '') {return '';};
+//          per = electorate.percentage_of_elected_candidate_votes_cast_in_electorate.replace('%', '');
+//          per = parseInt(per);
+//          return '<div class="hex-wrapper"><div class="hex-label">'
+//            + electorate.electoral_district + '<br/>'
+//            + '<small>' + electorate.party.substring(0,3) + ' ' + per + '%<small>'
+//            + '</div></div>';
+          return '<div class="hex-wrapper"><div class="hex-label">'
+//maybekeep   + electorate.map_id + '<br/>'
+//            + increment + '<br/>'  //Temporary use for finding nodes
+//old            + '<small>' + electorate.current_party + '<small>'
+				+ '<small>' + electorate.reg +'<small>'
+//            + '<small>' + electorate.edname + '<small>'
+            //+ '</div></div>'
+			;
+        }
+      });
+  //jquery hack to set the label wrapper heights
+  $('.hex-wrapper').height( hexRadius*sf );
+  */
+///////////////////////////////////////////////////////////////////////////
+///// Function to calculate the line segments between two node numbers ////
+///////////////////////////////////////////////////////////////////////////
+//Which nodes are neighbours
+var neighbour = 
+[
+	[25,26],[15,26],[16,26],[26,27],[36,27],[36,37],[36,47],[46,47],[46,46],[56,47],[56,57],[56,67],[66,67],[66,76],[66,75],[65,75],[65,74],[64,74],[64,73],[63,73],[63,72],[62,72],[62,71],[62,61],[62,51],[52,51],[42,51],[42,41],[42,31],[32,31],[32,22],[32,23],[33,23],[33,24],[34,24],[34,25],[35,25],
+	
+	[103,92],[103,93],[104,93],[104,94],[105,94],[105,95],[106,95],[106,96],[106,107],[116,107],[116,117],[127,117],[127,128],[127,137],[136,137],[136,147],[146,147],[156,147],[156,157],[167,157],[167,168],[167,177],[167,176],[166,176],[166,175],[165,175],[165,174],[165,164],[154,164],[154,153],[144,153],[144,143],[133,143],[133,132],[133,123],[124,123],[113,123],[113,112],[103,112],[103,102]
+	
+];
+
+
+//Initiate some variables
+var Sqr3 = 1/Math.sqrt(3);
+var lineData = [];
+var Node1,
+	Node2,
+	Node1_xy,
+	Node2_xy,
+	P1,
+	P2;
+				  
+//Calculate the x1, y1, x2, y2 of each line segment between neighbours
+for (var i = 0; i < neighbour.length; i++) {
+	Node1 = neighbour[i][0];
+	Node2 = neighbour[i][1];
+	
+	//An offset needs to be applied if the node is in an uneven row
+ 	if (Math.floor(Math.floor((Node1/MapColumns)%2)) != 0) {
+		Node1_xy = [(truePoints[Node1][0]+(hexRadius/(Sqr3*2))),truePoints[Node1][1]];
+	}
+	else {
+		Node1_xy = [truePoints[Node1][0],truePoints[Node1][1]];
+	}
+	
+	//An offset needs to be applied if the node is in an uneven row
+	if (Math.floor(Math.floor((Node2/MapColumns)%2)) != 0) {
+		Node2_xy = [(truePoints[Node2][0]+(hexRadius/(Sqr3*2))),truePoints[Node2][1]];
+	}
+	else {
+		Node2_xy = [truePoints[Node2][0],truePoints[Node2][1]];
+	}//else
+	
+	//P2 is the exact center location between two nodes
+	P2 = [(Node1_xy[0]+Node2_xy[0])/2,(Node1_xy[1]+Node2_xy[1])/2]; //[x2,y2]
+	P1 = Node1_xy; //[x1,x2]
+	
+	//A line segment will be drawn between the following two coordinates
+	lineData.push([(P2[0] + Sqr3*(P1[1] - P2[1])),(P2[1] + Sqr3*(P2[0] - P1[0]))]); //[x3_top, y3_top]
+	lineData.push([(P2[0] + Sqr3*(P2[1] - P1[1])),(P2[1] + Sqr3*(P1[0] - P2[0]))]); //[x3_bottom, y3_bottom]
+}//for i
+
+///////////////////////////////////////////////////////////////////////////
+/////////////////// Draw the black line segments //////////////////////////
+///////////////////////////////////////////////////////////////////////////
+
+var lineFunction = d3.svg.line()
+		  .x(function(d) {return d[0];})
+		  .y(function(d) {return d[1];})
+		  .interpolate("linear");
+				  
+var Counter = 0;
+//Loop over the linedata and draw each line
+for (var i = 0; i < (lineData.length/2); i++) { 	
+svg.append("path")
+	.attr("d", lineFunction([lineData[Counter],lineData[Counter+1]]))
+	.attr("stroke", "black")
+	.attr("stroke-width", 3)
+	.attr("fill", "none");
+	
+	Counter = Counter + 2;
+} //for i 
+
+</script> 
+
+<script src="javascripts/main.js"></script>
+
+</body>
+</html>
